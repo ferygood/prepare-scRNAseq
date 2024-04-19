@@ -1,12 +1,10 @@
 # Try seurat on breast cancer data
 
-ref: https://satijalab.org/seurat/articles/pbmc3k_tutorial
-
+ref: <https://satijalab.org/seurat/articles/pbmc3k_tutorial>
 
 ```{r}
 library(Seurat)
 ```
-
 
 ```{r}
 # load data
@@ -23,11 +21,14 @@ sobj[["percent.mt"]] <- PercentageFeatureSet(sobj, pattern="^MT-")
 ```
 
 Use FeatureScatter to see feature-feature relationship
+### we can use SCTransform to upgrade our script
+
 ```{r}
 plot1 <- FeatureScatter(sobj, feature1 = "nCount_RNA", feature2 = "percent.mt")
 plot2 <- FeatureScatter(sobj, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
 plot1 + plot2
 ```
+
 ```{r}
 # based on feature plot we subset the data
 sobj <- subset(sobj, subset = nFeature_RNA > 200 & nFeature_RNA < 11000 & percent.mt < 4)
@@ -37,6 +38,7 @@ sobj <- NormalizeData(sobj, normalization.method = "LogNormalize", scale.factor 
 ```
 
 Identification of highly variable features (feature selection)
+
 ```{r}
 sobj <- FindVariableFeatures(sobj, selection.method = "vst", nfeatures=2000)
 top10 <-head(VariableFeatures(sobj), 10) 
@@ -44,6 +46,7 @@ plot1 <- VariableFeaturePlot(sobj)
 plot2 <- LabelPoints(plot = plot1, points = top10, repel=TRUE)
 plot2
 ```
+
 ```{r}
 all.genes <- rownames(sobj)
 sobj <- ScaleData(sobj, features = all.genes) # can consider SCTransform
@@ -55,15 +58,41 @@ VizDimLoadings(sobj, dims=1:2, reduction="pca")
 ```
 
 Cluster the cells
+
 ```{r}
 sobj <- FindNeighbors(sobj, dims=1:10)
 sobj <- FindClusters(sobj, resolution=0.5)
+ElbowPlot(sobj)
 ```
 
 ## Run non-linear dimensional reduction
+
 ```{r}
 sobj <- RunUMAP(sobj, dims=1:10)
 DimPlot(sobj, reduction="umap")
 ```
+## identify cluster biomarkers
+If you can install presto, it can make your progress much faster.
+```{r}
+cluster2.markers <- FindMarkers(sobj, ident.1 = 2) # find DE expressed features in cluster2
+cluster2.markers_select <- cluster2.markers %>%
+    filter(p_val_adj < 0.01) %>%
+    filter(avg_log2FC > 2)
+
+cluster5.markers <- FindMarkers(sobj, ident.1 = 5, ident.2 = c(0,3))
+```
+
+Q: how to interpret markers
+You can use `VlnPlot()`, `FeaturePlot()`, and  to visualize marker expression.
+```{r}
+# you can plot raw counts as well
+VlnPlot(sobj, features = c("SST", "OGN"), slot = "counts", log = TRUE)
+
+FeaturePlot(sobj, features = c("MT-ND3", "ACTB"))
+
+```
+
+
+Next question, how to match clusters to known cell types? (Assigning cell type identity to clusters)
 
 

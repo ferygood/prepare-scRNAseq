@@ -1,0 +1,37 @@
+# Try multimodal using RNA-seq and SoloTE
+
+For SCTtransform, install the package, , to speed up the code.
+
+```{r}
+library(Seurat)
+
+# Set the path to the folder containing your files
+folder_path <- "/group/ag_nowick/data/yao/bc_11_SoloTE_output/bc_11_familytes_MATRIX/"
+
+# Load the matrix
+matrix <- ReadMtx(mtx = file.path(folder_path, "matrix.mtx"),
+                  cells = file.path(folder_path, "barcodes.tsv"),
+                  features = file.path(folder_path, "features.tsv"))
+
+# Create a Seurat object
+sTEobj <- CreateSeuratObject(counts = matrix, 
+                             assay = "RNA", 
+                             project = "TEsubfamily")
+sTEobj <- SCTransform(sTEobj, verbose = FALSE)
+
+```
+
+# Perform PCA and UMAP
+
+```{r}
+sTEobj <- RunPCA(sTEobj, verbose=TRUE)
+sTEobj <- RunUMAP(sTEobj, dims= 1:10, verbose=FALSE)
+sTEobj <- FindNeighbors(sTEobj, dims=1:10, verbose=TRUE)
+sTEobj <- FindClusters(sTEobj, verbose=TRUE)
+
+DimPlot(sTEobj, label=TRUE)
+```
+```{r}
+cluster2.markers <- FindMarkers(sTEobj, ident.1 = 2)
+```
+
